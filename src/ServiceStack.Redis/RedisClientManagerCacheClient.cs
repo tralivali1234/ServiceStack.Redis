@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ServiceStack.Caching;
 
 namespace ServiceStack.Redis
@@ -180,26 +181,31 @@ namespace ServiceStack.Redis
         {
             using (var client = GetClient())
             {
-                var redisClient = client as RedisClient;
+                var redisClient = client as IRemoveByPattern;
                 if (redisClient != null)
                 {
-                    List<string> keys = redisClient.Keys(pattern).ToStringList();
-                    if (keys.Count > 0)
-                        redisClient.Del(keys.ToArray());
+                    redisClient.RemoveByPattern(pattern);
                 }
             }
         }
 
         public void RemoveByRegex(string pattern)
         {
-            RemoveByPattern(pattern.Replace(".*", "*").Replace(".+", "?"));
+            using (var client = GetClient())
+            {
+                var redisClient = client as IRemoveByPattern;
+                if (redisClient != null)
+                {
+                    redisClient.RemoveByRegex(pattern);
+                }
+            }
         }
 
         public TimeSpan? GetTimeToLive(string key)
         {
             using (var client = GetClient())
             {
-                var redisClient = client as RedisClient;
+                var redisClient = client as ICacheClientExtended;
                 if (redisClient != null)
                 {
                     return redisClient.GetTimeToLive(key);
@@ -210,9 +216,9 @@ namespace ServiceStack.Redis
 
         public IEnumerable<string> GetKeysByPattern(string pattern)
         {
-            using (var client = (RedisClient)GetClient())
+            using (var client = (ICacheClientExtended)GetClient())
             {
-                return client.GetKeysByPattern(pattern);
+                return client.GetKeysByPattern(pattern).ToList();
             }
         }
     }

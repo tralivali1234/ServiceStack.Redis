@@ -120,6 +120,13 @@ namespace ServiceStack.Redis
                     }
                     else
                     {
+#if NETSTANDARD1_3
+                        sslStream = new SslStream(networkStream,
+                            leaveInnerStreamOpen: false,
+                            userCertificateValidationCallback: RedisConfig.CertificateValidationCallback,
+                            userCertificateSelectionCallback: RedisConfig.CertificateSelectionCallback,
+                            encryptionPolicy: EncryptionPolicy.RequireEncryption);
+#else
                         var ctor = typeof(SslStream).GetAllConstructors()
                             .First(x => x.GetParameters().Length == 5);
 
@@ -133,6 +140,7 @@ namespace ServiceStack.Redis
                             RedisConfig.CertificateSelectionCallback,
                             policyValue,
                         });
+#endif                        
                     }
 
 #if NETSTANDARD1_3
@@ -234,8 +242,10 @@ namespace ServiceStack.Redis
 
         public bool IsSocketConnected()
         {
+            if (socket == null)
+                return false;
             var part1 = socket.Poll(1000, SelectMode.SelectRead);
-            var part2 = (socket.Available == 0);
+            var part2 = socket.Available == 0;
             return !(part1 & part2);
         }
 
